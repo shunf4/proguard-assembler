@@ -372,7 +372,7 @@ implements   AttributeVisitor,
 
     public void visitClassElementValue(Clazz clazz, Annotation annotation, ClassElementValue classElementValue)
     {
-        clazz.constantPoolEntryAccept(classElementValue.u2classInfoIndex, new ConstantPrinter(p, false));
+        p.printType(classElementValue.getClassName(clazz));
         p.print(AssemblyConstants.STATEMENT_END);
     }
 

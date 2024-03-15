@@ -599,6 +599,7 @@ implements   ClassVisitor,
             case Attribute.SYNTHETIC:                               attribute = new SyntheticAttribute();                            break;
             case Attribute.SIGNATURE:                               attribute = new SignatureAttribute();                            break;
 //            case Attribute.CONSTANT_VALUE:                          attribute = new ConstantValueAttribute();                        break;
+// MethodParameters attribute is already correctly handled
 //            case Attribute.METHOD_PARAMETERS:                       attribute = new MethodParametersAttribute();                     break;
 //            case Attribute.EXCEPTIONS:                              attribute = new ExceptionsAttribute();                           break;
             case Attribute.CODE:                                    attribute = new CodeAttribute();                                 break;

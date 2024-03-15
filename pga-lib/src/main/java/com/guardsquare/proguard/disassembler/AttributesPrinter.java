@@ -192,6 +192,21 @@ implements   ClassVisitor,
         p.print(AssemblyConstants.STATEMENT_END);
     }
 
+    // @Override
+    // public void visitMethodParametersAttribute(
+    //   Clazz clazz, Method method, MethodParametersAttribute a)
+    // {
+    //     p.printSpace();
+    //     p.printString(new Integer(a.u1parametersCount).toString());
+    //     p.printString(",");
+    //     for (ParameterInfo i : a.parameters) {
+    //         p.printString(new Integer(i.u2nameIndex).toString());
+    //         p.printString("/");
+    //         p.printString(new Integer(i.u2accessFlags).toString());
+    //         p.printString(",");
+    //     }
+    //     p.print(AssemblyConstants.STATEMENT_END);
+    // }
 
     public void visitSourceDirAttribute(Clazz clazz, SourceDirAttribute sourceDirAttribute)
     {
@@ -736,7 +751,7 @@ implements   ClassVisitor,
             case Attribute.SYNTHETIC:
             case Attribute.SIGNATURE:
 //            case Attribute.CONSTANT_VALUE:
-//            case Attribute.METHOD_PARAMETERS:
+            case Attribute.METHOD_PARAMETERS:
 //            case Attribute.EXCEPTIONS:
             case Attribute.CODE:
 //            case Attribute.STACK_MAP:

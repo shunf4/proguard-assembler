@@ -44,9 +44,9 @@ distributions {
     main {
         distributionBaseName.set('proguard-assembler')
         contents {
-            into("$rootDir/lib") {
-                from jar.outputs
-            }
+            // into("lib") {
+            //     from jar.outputs
+            // }
             into("docs") {
                 from("$rootDir/docs/md") {
                     includeEmptyDirs = false

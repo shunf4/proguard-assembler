@@ -182,7 +182,8 @@ public class Printer
         StringBuilder stringBuilder = new StringBuilder();
         for (char c : string.toCharArray())
         {
-            if (c < ' ' || c > '~')
+            // Java StreamTokenizer only recognizes octal representation that falls within Extended ASCII
+            if ((c < ' ' || c > '~') && c <= 255)
             {
                 stringBuilder.append("\\" + Integer.toOctalString(c));
             }
