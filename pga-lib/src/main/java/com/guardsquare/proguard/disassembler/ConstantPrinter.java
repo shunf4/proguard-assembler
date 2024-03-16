@@ -117,6 +117,18 @@ implements   ConstantVisitor
 
     public void visitFloatConstant(Clazz clazz, FloatConstant floatConstant)
     {
+        if (Float.isNaN(floatConstant.f4value)) {
+            p.printWord("nanF");
+            return;
+        }
+        if (Double.isInfinite(floatConstant.f4value)) {
+            if (floatConstant.f4value < 0) {
+                p.printWord("negativeInfinityF");
+            } else {
+                p.printWord("positiveInfinityF");
+            }
+            return;
+        }
         p.printNumber(floatConstant.f4value);
         p.printWord(AssemblyConstants.TYPE_FLOAT);
     }
@@ -124,6 +136,18 @@ implements   ConstantVisitor
 
     public void visitDoubleConstant(Clazz clazz, DoubleConstant doubleConstant)
     {
+        if (Double.isNaN(doubleConstant.f8value)) {
+            p.printWord("nanD");
+            return;
+        }
+        if (Double.isInfinite(doubleConstant.f8value)) {
+            if (doubleConstant.f8value < 0) {
+                p.printWord("negativeInfinityD");
+            } else {
+                p.printWord("positiveInfinityD");
+            }
+            return;
+        }
         p.printNumber(doubleConstant.f8value);
         p.printWord(AssemblyConstants.TYPE_DOUBLE);
     }
@@ -212,18 +236,35 @@ implements   ConstantVisitor
     }
 
 
-    public void visitAnyMethodrefConstant(Clazz clazz, AnyMethodrefConstant anyMethodrefConstant)
+    public void visitInterfaceMethodrefConstant(Clazz clazz, InterfaceMethodrefConstant interfaceMethodrefConstant)
     {
-        if (anyMethodrefConstant.u2classIndex != ((ProgramClass) clazz).u2thisClass)
+        p.printWord("interface");
+        p.printSpace();
+
+        if (interfaceMethodrefConstant.u2classIndex != ((ProgramClass) clazz).u2thisClass)
         {
-            clazz.constantPoolEntryAccept(anyMethodrefConstant.u2classIndex, this);
+            clazz.constantPoolEntryAccept(interfaceMethodrefConstant.u2classIndex, this);
         }
 
         p.print(AssemblyConstants.REFERENCE_SEPARATOR);
-        p.printMethodReturnType(anyMethodrefConstant.getType(clazz));
+        p.printMethodReturnType(interfaceMethodrefConstant.getType(clazz));
         p.printSpace();
-        p.printWord(anyMethodrefConstant.getName(clazz));
-        p.printMethodArguments(anyMethodrefConstant.getType(clazz));
+        p.printWord(interfaceMethodrefConstant.getName(clazz));
+        p.printMethodArguments(interfaceMethodrefConstant.getType(clazz));
+    }
+
+    public void visitMethodrefConstant(Clazz clazz, MethodrefConstant methodrefConstant)
+    {
+        if (methodrefConstant.u2classIndex != ((ProgramClass) clazz).u2thisClass)
+        {
+            clazz.constantPoolEntryAccept(methodrefConstant.u2classIndex, this);
+        }
+
+        p.print(AssemblyConstants.REFERENCE_SEPARATOR);
+        p.printMethodReturnType(methodrefConstant.getType(clazz));
+        p.printSpace();
+        p.printWord(methodrefConstant.getName(clazz));
+        p.printMethodArguments(methodrefConstant.getType(clazz));
     }
 
 

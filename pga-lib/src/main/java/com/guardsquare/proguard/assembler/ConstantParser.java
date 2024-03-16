@@ -22,6 +22,7 @@ import proguard.classfile.constant.*;
 import proguard.classfile.constant.visitor.ConstantVisitor;
 import proguard.classfile.editor.*;
 import proguard.classfile.util.*;
+import proguard.classfile.instruction.*;
 
 /**
  * Parses Constants, adds them to the constant pool and sets the index field.
@@ -162,16 +163,29 @@ implements   ConstantVisitor
             case AssemblyConstants.REF_GET_STATIC:         refKind = MethodHandleConstant.REF_GET_STATIC;        refConstant = new FieldrefConstant();           break;
             case AssemblyConstants.REF_PUT_FIELD:          refKind = MethodHandleConstant.REF_PUT_FIELD;         refConstant = new FieldrefConstant();           break;
             case AssemblyConstants.REF_PUT_STATIC:         refKind = MethodHandleConstant.REF_PUT_STATIC;        refConstant = new FieldrefConstant();           break;
-            case AssemblyConstants.REF_INVOKE_VIRTUAL:     refKind = MethodHandleConstant.REF_INVOKE_VIRTUAL;    refConstant = new MethodrefConstant();          break;
-            case AssemblyConstants.REF_INVOKE_STATIC:      refKind = MethodHandleConstant.REF_INVOKE_STATIC;     refConstant = new MethodrefConstant();          break;
-            case AssemblyConstants.REF_INVOKE_SPECIAL:     refKind = MethodHandleConstant.REF_INVOKE_SPECIAL;    refConstant = new MethodrefConstant();          break;
-            case AssemblyConstants.REF_NEW_INVOKE_SPECIAL: refKind = MethodHandleConstant.REF_NEW_INVOKE_SPECIAL; refConstant = new MethodrefConstant();          break;
+            case AssemblyConstants.REF_INVOKE_VIRTUAL:     refKind = MethodHandleConstant.REF_INVOKE_VIRTUAL;    refConstant = makePossiblyInterfaceMethodrefConstant();          break;
+            case AssemblyConstants.REF_INVOKE_STATIC:      refKind = MethodHandleConstant.REF_INVOKE_STATIC;     refConstant = makePossiblyInterfaceMethodrefConstant();          break;
+            case AssemblyConstants.REF_INVOKE_SPECIAL:     refKind = MethodHandleConstant.REF_INVOKE_SPECIAL;    refConstant = makePossiblyInterfaceMethodrefConstant();          break;
+            case AssemblyConstants.REF_NEW_INVOKE_SPECIAL: refKind = MethodHandleConstant.REF_NEW_INVOKE_SPECIAL; refConstant = makePossiblyInterfaceMethodrefConstant();          break;
             case AssemblyConstants.REF_INVOKE_INTERFACE:   refKind = MethodHandleConstant.REF_INVOKE_INTERFACE;  refConstant = new InterfaceMethodrefConstant(); break;
             default:                                       throw new ParseException("Unknown reference kind " + referenceKind + ".", p.lineno());
         }
 
         refConstant.accept(clazz, this);
         index = cpe.addMethodHandleConstant(refKind, index);
+    }
+
+    private AnyMethodrefConstant makePossiblyInterfaceMethodrefConstant() {
+        if (p.nextTtypeEqualsWord()) {
+            p.pushBack();
+            if ("interface".equals(p.sval)) {
+                return new InterfaceMethodrefConstant();
+            } else {
+                return new MethodrefConstant();
+            }
+        } else {
+            return new MethodrefConstant();
+        }
     }
 
 
@@ -232,6 +246,14 @@ implements   ConstantVisitor
 
     public void visitInterfaceMethodrefConstant(Clazz clazz, InterfaceMethodrefConstant interfaceMethodrefConstant)
     {
+        String interfaceKeyword = p.expectWord("the keyword \"interface\"");
+        if (!"interface".equals(interfaceKeyword)) {
+            throw new ParseException("Expected "          +
+                "the keyword \"interface\""             +
+                " but got "          +
+                interfaceKeyword +
+                ".", p.lineno());
+        }
         int classIndex;
         if (p.nextTtypeEquals(AssemblyConstants.REFERENCE_SEPARATOR))
         {
@@ -268,5 +290,20 @@ implements   ConstantVisitor
     public void visitNameAndTypeConstant(Clazz clazz, NameAndTypeConstant nameAndTypeConstant)
     {
         throw new ParseException("Unsupported operation", p.lineno());
+    }
+
+    public void visitPossibleInterfaceMethodref(Clazz clazz, ConstantInstruction constantInstruction) {
+        if (p.nextTtypeEqualsWord()) {
+            p.pushBack();
+            if ("interface".equals(p.sval)) {
+                visitInterfaceMethodrefConstant(clazz, null);
+                constantInstruction.constant =
+                    (ClassUtil.internalMethodParameterSize(clazz.getRefType(getIndex())) + 1) << 8;
+            } else {
+                visitMethodrefConstant(clazz, null);
+            }
+        } else {
+            visitMethodrefConstant(clazz, null);
+        }
     }
 }

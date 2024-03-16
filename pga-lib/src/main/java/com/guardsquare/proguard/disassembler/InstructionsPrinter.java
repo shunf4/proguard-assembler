@@ -123,7 +123,10 @@ implements   AttributeVisitor,
                         p.printSpace();
                         p.printType(localVariableInfo.getDescriptor(clazz));
                         p.printSpace();
-                        p.printWord(localVariableInfo.getName(clazz));
+                        String n = localVariableInfo.getName(clazz);
+                        // n can contain invalid char for an identifier, best using string here
+                        n = n.replace("<", "_$").replace(">", "$_").replace("-", "__").replace("?", "$_$");
+                        p.printWord(n);
                         p.println();
                         p.indent();
                     }

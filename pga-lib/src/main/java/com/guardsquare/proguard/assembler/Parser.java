@@ -633,12 +633,31 @@ public class Parser extends StreamTokenizer
                 return cp.getIndex();
             }
 
+            if ("negativeInfinityD".equals(sval)) {
+                return cpe.addDoubleConstant(Double.NEGATIVE_INFINITY);
+            }
+            if ("positiveInfinityD".equals(sval)) {
+                return cpe.addDoubleConstant(Double.POSITIVE_INFINITY);
+            }
+            if ("nanD".equals(sval)) {
+                return cpe.addDoubleConstant(Double.NaN);
+            }
+            if ("negativeInfinityF".equals(sval)) {
+                return cpe.addFloatConstant(Float.NEGATIVE_INFINITY);
+            }
+            if ("positiveInfinityF".equals(sval)) {
+                return cpe.addFloatConstant(Float.POSITIVE_INFINITY);
+            }
+            if ("nanF".equals(sval)) {
+                return cpe.addFloatConstant(Float.NaN);
+            }
+
             pushBack();
             cp.visitClassConstant(clazz, null);
             return cp.getIndex();
         }
 
-        throw new ParseException("Unknown loadable constant type.", lineno());
+        throw new ParseException("Unknown loadable constant type. " + next(), lineno());
     }
 
 

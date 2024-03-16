@@ -751,7 +751,7 @@ implements   ClassVisitor,
             case Attribute.SYNTHETIC:
             case Attribute.SIGNATURE:
 //            case Attribute.CONSTANT_VALUE:
-            case Attribute.METHOD_PARAMETERS:
+//            case Attribute.METHOD_PARAMETERS:
 //            case Attribute.EXCEPTIONS:
             case Attribute.CODE:
 //            case Attribute.STACK_MAP:

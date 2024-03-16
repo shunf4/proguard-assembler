@@ -308,7 +308,7 @@ implements   MemberVisitor,
             constantInstruction.opcode == Instruction.OP_INVOKESPECIAL ||
             constantInstruction.opcode == Instruction.OP_INVOKESTATIC)
         {
-            cp.visitMethodrefConstant(clazz, null);
+            cp.visitPossibleInterfaceMethodref(clazz, constantInstruction);
             constantInstruction.constantIndex = cp.getIndex();
         }
 
