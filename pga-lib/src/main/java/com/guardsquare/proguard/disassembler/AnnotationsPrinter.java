@@ -236,23 +236,23 @@ implements   AttributeVisitor,
     public void visitTypeParameterTargetInfo(Clazz clazz, TypeAnnotation typeAnnotation, TypeParameterTargetInfo typeParameterTargetInfo)
     {
         p.printSpace();
-        p.printNumber(typeParameterTargetInfo.u1typeParameterIndex);
+        p.printRawIntOrLong(typeParameterTargetInfo.u1typeParameterIndex);
     }
 
 
     public void visitSuperTypeTargetInfo(Clazz clazz, TypeAnnotation typeAnnotation, SuperTypeTargetInfo superTypeTargetInfo)
     {
         p.printSpace();
-        p.printNumber(superTypeTargetInfo.u2superTypeIndex);
+        p.printRawIntOrLong(superTypeTargetInfo.u2superTypeIndex);
     }
 
 
     public void visitTypeParameterBoundTargetInfo(Clazz clazz, TypeAnnotation typeAnnotation, TypeParameterBoundTargetInfo typeParameterBoundTargetInfo)
     {
         p.printSpace();
-        p.printNumber(typeParameterBoundTargetInfo.u1typeParameterIndex);
+        p.printRawIntOrLong(typeParameterBoundTargetInfo.u1typeParameterIndex);
         p.printSpace();
-        p.printNumber(typeParameterBoundTargetInfo.u1boundIndex);
+        p.printRawIntOrLong(typeParameterBoundTargetInfo.u1boundIndex);
     }
 
 
@@ -265,14 +265,14 @@ implements   AttributeVisitor,
     public void visitFormalParameterTargetInfo(Clazz clazz, Method method, TypeAnnotation typeAnnotation, FormalParameterTargetInfo formalParameterTargetInfo)
     {
         p.printSpace();
-        p.printNumber(formalParameterTargetInfo.u1formalParameterIndex);
+        p.printRawIntOrLong(formalParameterTargetInfo.u1formalParameterIndex);
     }
 
 
     public void visitThrowsTargetInfo(Clazz clazz, Method method, TypeAnnotation typeAnnotation, ThrowsTargetInfo throwsTargetInfo)
     {
         p.printSpace();
-        p.printNumber(throwsTargetInfo.u2throwsTypeIndex);
+        p.printRawIntOrLong(throwsTargetInfo.u2throwsTypeIndex);
     }
 
 
@@ -302,7 +302,7 @@ implements   AttributeVisitor,
     public void visitCatchTargetInfo(Clazz clazz, Method method, CodeAttribute codeAttribute, TypeAnnotation typeAnnotation, CatchTargetInfo catchTargetInfo)
     {
         p.printSpace();
-        p.printNumber(catchTargetInfo.u2exceptionTableIndex);
+        p.printRawIntOrLong(catchTargetInfo.u2exceptionTableIndex);
     }
 
 
@@ -318,7 +318,7 @@ implements   AttributeVisitor,
         p.printSpace();
         p.printOffset(typeArgumentTargetInfo.u2offset);
         p.printSpace();
-        p.printNumber(typeArgumentTargetInfo.u1typeArgumentIndex);
+        p.printRawIntOrLong(typeArgumentTargetInfo.u1typeArgumentIndex);
     }
 
 
@@ -332,7 +332,7 @@ implements   AttributeVisitor,
         if (typePathInfo.u1typeArgumentIndex != 0)
         {
             p.printSpace();
-            p.printNumber(typePathInfo.u1typeArgumentIndex);
+            p.printRawIntOrLong(typePathInfo.u1typeArgumentIndex);
         }
 
         p.print(AssemblyConstants.STATEMENT_END);
@@ -347,7 +347,7 @@ implements   AttributeVisitor,
         p.printSpace();
         p.printOffset(localVariableTargetElement.u2startPC + localVariableTargetElement.u2length);
         p.printSpace();
-        p.printNumber(localVariableTargetElement.u2index);
+        p.printRawIntOrLong(localVariableTargetElement.u2index);
         p.print(AssemblyConstants.STATEMENT_END);
     }
 

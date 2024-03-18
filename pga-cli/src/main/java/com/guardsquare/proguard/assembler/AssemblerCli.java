@@ -39,6 +39,8 @@ public class AssemblerCli
 {
     private static final byte[] JMOD_HEADER            = new byte[] { 'J', 'M', 1, 0 };
     private static final String JMOD_CLASS_FILE_PREFIX = "classes/";
+    
+    private static String mainClassSaved = null;
 
 
     public static void main(String[] args) throws IOException
@@ -151,7 +153,30 @@ public class AssemblerCli
         DataEntryReader reader =
             reader(classReader,
                    jbcReader,
-                   null);
+                    new DataEntryReader() {
+                        @Override
+                        public void read(DataEntry dataEntry) throws IOException {
+                            if ("META-INF/MANIFEST.MF".equals(dataEntry.getName())) {
+                                BufferedReader br = new BufferedReader(new InputStreamReader(dataEntry.getInputStream(), java.nio.charset.StandardCharsets.UTF_8));
+                                br
+                                    .lines()
+                                    .forEach(line -> {
+                                        String theMainClass = null;
+                                        if (line.startsWith("Main-Class: ")) {
+                                            theMainClass = line.substring("Main-Class: ".length());
+                                        } else if (line.startsWith("Main-Class:")) {
+                                            theMainClass = line.substring("Main-Class:".length());
+                                        }
+                                        if (theMainClass != null) {
+                                            System.out.println("Saved Main-Class: " + theMainClass);
+                                            System.out.flush();
+                                            mainClassSaved = theMainClass;
+                                        }
+                                    });
+                                br.close();
+                            }
+                        }
+                    });
 
         inputSource.pumpDataEntries(reader);
     }
@@ -302,8 +327,30 @@ public class AssemblerCli
         // Pack jar files.
         if (isJar)
         {
+            class MyJarWriter extends JarWriter implements Closeable {
+                public MyJarWriter(DataEntryWriter zipEntryWriter) {
+                    super(zipEntryWriter);
+                }
+
+                @Override
+                protected OutputStream createManifestOutputStream(DataEntry manifestEntry)
+                        throws IOException {
+                    OutputStream outputStream = super.createManifestOutputStream(manifestEntry);
+                    if (mainClassSaved != null) {
+                        PrintWriter writer = new PrintWriter(outputStream);
+                        writer.println("Main-Class: " + mainClassSaved);
+                        writer.flush();
+                    }
+                    return outputStream;
+                }
+
+                @Override
+                public void close() throws IOException {
+                    super.close();
+                }
+            }
             writer =
-                new JarWriter(
+                new MyJarWriter(
                 new ZipWriter(writer));
         }
 

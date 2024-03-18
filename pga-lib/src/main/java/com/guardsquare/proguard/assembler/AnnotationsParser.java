@@ -483,6 +483,64 @@ implements   AttributeVisitor,
                 elementValue.accept(clazz, annotation, this);
                 return elementValue;
             }
+            else if ("negativeInfinityD".equals(p.sval)) {
+                ElementValue elementValue = new ConstantElementValue(TypeConstants.DOUBLE, 0, cpe.addDoubleConstant(Double.NEGATIVE_INFINITY));
+                p.expect(AssemblyConstants.STATEMENT_END, "element value end");
+                return elementValue;
+            }
+            else if ("positiveInfinityD".equals(p.sval)) {
+                ElementValue elementValue = new ConstantElementValue(TypeConstants.DOUBLE, 0, cpe.addDoubleConstant(Double.POSITIVE_INFINITY));
+                p.expect(AssemblyConstants.STATEMENT_END, "element value end");
+                return elementValue;
+            }
+            else if ("nanD".equals(p.sval)) {
+                ElementValue elementValue = new ConstantElementValue(TypeConstants.DOUBLE, 0, cpe.addDoubleConstant(Double.NaN));
+                p.expect(AssemblyConstants.STATEMENT_END, "element value end");
+                return elementValue;
+            }
+            else if ("negativeInfinityF".equals(p.sval)) {
+                ElementValue elementValue = new ConstantElementValue(TypeConstants.FLOAT, 0, cpe.addFloatConstant(Float.NEGATIVE_INFINITY));
+                p.expect(AssemblyConstants.STATEMENT_END, "element value end");
+                return elementValue;
+            }
+            else if ("positiveInfinityF".equals(p.sval)) {
+                ElementValue elementValue = new ConstantElementValue(TypeConstants.FLOAT, 0, cpe.addFloatConstant(Float.POSITIVE_INFINITY));
+                p.expect(AssemblyConstants.STATEMENT_END, "element value end");
+                return elementValue;
+            }
+            else if ("nanF".equals(p.sval)) {
+                ElementValue elementValue = new ConstantElementValue(TypeConstants.FLOAT, 0, cpe.addFloatConstant(Float.NaN));
+                p.expect(AssemblyConstants.STATEMENT_END, "element value end");
+                return elementValue;
+            }
+            else if (p.sval.startsWith("theDouble____")) {
+                long l = Long.parseUnsignedLong(p.sval.substring("theDouble____".length()));
+
+                ElementValue elementValue = new ConstantElementValue(TypeConstants.DOUBLE, 0, cpe.addDoubleConstant(Double.longBitsToDouble(l)));
+                p.expect(AssemblyConstants.STATEMENT_END, "element value end");
+                return elementValue;
+            }
+            else if (p.sval.startsWith("theFloat____")) {
+                int i = Integer.parseUnsignedInt(p.sval.substring("theFloat____".length()));
+
+                ElementValue elementValue = new ConstantElementValue(TypeConstants.FLOAT, 0, cpe.addFloatConstant(Float.intBitsToFloat(i)));
+                p.expect(AssemblyConstants.STATEMENT_END, "element value end");
+                return elementValue;
+            }
+            else if (p.sval.startsWith("theInt____")) {
+                int i = Integer.parseUnsignedInt(p.sval.substring("theInt____".length()));
+
+                ElementValue elementValue = new ConstantElementValue(TypeConstants.INT, 0, cpe.addIntegerConstant(i));
+                p.expect(AssemblyConstants.STATEMENT_END, "element value end");
+                return elementValue;
+            }
+            else if (p.sval.startsWith("theLong____")) {
+                long l = Long.parseUnsignedLong(p.sval.substring("theLong____".length()));
+
+                ElementValue elementValue = new ConstantElementValue(TypeConstants.LONG, 0, cpe.addLongConstant(l));
+                p.expect(AssemblyConstants.STATEMENT_END, "element value end");
+                return elementValue;
+            }
             else
             {
                 p.pushBack();

@@ -148,15 +148,33 @@ public class Printer
     }
 
 
-    /**
-     * Writes a number.
-     * The number will be formatted according to the DecimalFormat field.
-     *
-     * @param number the number to write.
-     */
-    public void printNumber(double number)
+    public void printDouble(double number)
     {
-        write(AssemblyConstants.DOUBLE_TO_STRING.format(number));
+        write("theDouble____");
+        write(Long.toUnsignedString(Double.doubleToLongBits(number)));
+    }
+
+    public void printFloat(float number)
+    {
+        write("theFloat____");
+        write(Integer.toUnsignedString(Float.floatToIntBits(number)));
+    }
+
+    public void printInt(int theInt)
+    {
+        write("theInt____");
+        write(Integer.toUnsignedString(theInt));
+    }
+
+    public void printLong(long theLong)
+    {
+        write("theLong____");
+        write(Long.toUnsignedString(theLong));
+    }
+
+    public void printRawIntOrLong(long intOrLong)
+    {
+        write(Long.toString(intOrLong));
     }
 
 

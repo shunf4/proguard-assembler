@@ -104,14 +104,14 @@ implements   ConstantVisitor
             p.printSpace();
         }
 
-        p.printNumber(integerConstant.u4value);
+        p.printInt(integerConstant.u4value);
     }
 
 
     public void visitLongConstant(Clazz clazz, LongConstant longConstant)
     {
-        p.printNumber(longConstant.u8value);
-        p.printWord(AssemblyConstants.TYPE_LONG);
+        p.printLong(longConstant.u8value);
+        // p.printWord(AssemblyConstants.TYPE_LONG);
     }
 
 
@@ -129,8 +129,8 @@ implements   ConstantVisitor
             }
             return;
         }
-        p.printNumber(floatConstant.f4value);
-        p.printWord(AssemblyConstants.TYPE_FLOAT);
+        p.printFloat(floatConstant.f4value);
+        // p.printWord(AssemblyConstants.TYPE_FLOAT);
     }
 
 
@@ -148,8 +148,8 @@ implements   ConstantVisitor
             }
             return;
         }
-        p.printNumber(doubleConstant.f8value);
-        p.printWord(AssemblyConstants.TYPE_DOUBLE);
+        p.printDouble(doubleConstant.f8value);
+        // p.printWord(AssemblyConstants.TYPE_DOUBLE);
     }
 
 
@@ -175,7 +175,7 @@ implements   ConstantVisitor
             p.printSpace();
         }
 
-        p.printNumber(dynamicConstant.u2bootstrapMethodAttributeIndex);
+        p.printRawIntOrLong(dynamicConstant.u2bootstrapMethodAttributeIndex);
         p.printSpace();
         p.printType(dynamicConstant.getType(clazz));
         p.printSpace();
@@ -185,7 +185,7 @@ implements   ConstantVisitor
 
     public void visitInvokeDynamicConstant(Clazz clazz, InvokeDynamicConstant invokeDynamicConstant)
     {
-        p.printNumber(invokeDynamicConstant.u2bootstrapMethodAttributeIndex);
+        p.printRawIntOrLong(invokeDynamicConstant.u2bootstrapMethodAttributeIndex);
         p.printSpace();
         p.printMethodReturnType(invokeDynamicConstant.getType(clazz));
         p.printSpace();

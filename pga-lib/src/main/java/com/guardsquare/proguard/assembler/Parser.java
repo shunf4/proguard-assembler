@@ -651,6 +651,22 @@ public class Parser extends StreamTokenizer
             if ("nanF".equals(sval)) {
                 return cpe.addFloatConstant(Float.NaN);
             }
+            if (sval.startsWith("theDouble____")) {
+                long l = Long.parseUnsignedLong(sval.substring("theDouble____".length()));
+                return cpe.addDoubleConstant(Double.longBitsToDouble(l));
+            }
+            if (sval.startsWith("theFloat____")) {
+                int i = Integer.parseUnsignedInt(sval.substring("theFloat____".length()));
+                return cpe.addFloatConstant(Float.intBitsToFloat(i));
+            }
+            if (sval.startsWith("theInt____")) {
+                int i = Integer.parseUnsignedInt(sval.substring("theInt____".length()));
+                return cpe.addIntegerConstant(i);
+            }
+            if (sval.startsWith("theLong____")) {
+                long l = Long.parseUnsignedLong(sval.substring("theLong____".length()));
+                return cpe.addLongConstant(l);
+            }
 
             pushBack();
             cp.visitClassConstant(clazz, null);

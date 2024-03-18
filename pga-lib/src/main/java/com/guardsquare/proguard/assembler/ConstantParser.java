@@ -78,10 +78,22 @@ implements   ConstantVisitor
             return;
         }
 
-        if (p.nextTtypeEqualsNumber())
-        {
-            index = cpe.addIntegerConstant((int) p.nval);
-            return;
+        // if (p.nextTtypeEqualsNumber())
+        // {
+        //     index = cpe.addIntegerConstant((int) p.nval);
+        //     return;
+        // }
+
+        if (p.nextTtypeEqualsWord()) {
+            String w = p.sval;
+
+            if (w.startsWith("theInt____")) {
+                int i = Integer.parseUnsignedInt(w.substring("theInt____".length()));
+                index = cpe.addIntegerConstant(i);
+                return;
+            }
+
+            p.pushBack();
         }
 
         if (AssemblyConstants.TRUE.equals(p.expect(AssemblyConstants.TRUE, AssemblyConstants.FALSE)))
@@ -97,19 +109,62 @@ implements   ConstantVisitor
 
     public void visitLongConstant(Clazz clazz, LongConstant longConstant)
     {
-        index = cpe.addLongConstant((long) p.expectNumber("long value"));
+        String w = p.expectWord("long value");
+        if (w.startsWith("theLong____")) {
+            long l = Long.parseUnsignedLong(w.substring("theLong____".length()));
+            index =  cpe.addLongConstant(l);
+            return;
+        }
+        throw new ParseException("bad long constant: " + w, p.lineno());
     }
 
 
     public void visitFloatConstant(Clazz clazz, FloatConstant floatConstant)
     {
-        index = cpe.addFloatConstant((float) p.expectNumber("float value"));
+        String w = p.expectWord("float value");
+
+        if ("negativeInfinityF".equals(w)) {
+            index = cpe.addFloatConstant(Float.NEGATIVE_INFINITY);
+            return;
+        }
+        if ("positiveInfinityF".equals(w)) {
+            index = cpe.addFloatConstant(Float.POSITIVE_INFINITY);
+            return;
+        }
+        if ("nanF".equals(w)) {
+            index = cpe.addFloatConstant(Float.NaN);
+            return;
+        }
+        if (w.startsWith("theFloat____")) {
+            int i = Integer.parseUnsignedInt(w.substring("theFloat____".length()));
+            index = cpe.addFloatConstant(Float.intBitsToFloat(i));
+            return;
+        }
+        throw new ParseException("bad float constant: " + w, p.lineno());
     }
 
 
     public void visitDoubleConstant(Clazz clazz, DoubleConstant doubleConstant)
     {
-        index = cpe.addDoubleConstant(p.expectNumber("double value"));
+        String w = p.expectWord("double value");
+        if ("negativeInfinityD".equals(w)) {
+            index = cpe.addDoubleConstant(Double.NEGATIVE_INFINITY);
+            return;
+        }
+        if ("positiveInfinityD".equals(w)) {
+            index = cpe.addDoubleConstant(Double.POSITIVE_INFINITY);
+            return;
+        }
+        if ("nanD".equals(w)) {
+            index = cpe.addDoubleConstant(Double.NaN);
+            return;
+        }
+        if (w.startsWith("theDouble____")) {
+            long l = Long.parseUnsignedLong(w.substring("theDouble____".length()));
+            index = cpe.addDoubleConstant(Double.longBitsToDouble(l));
+            return;
+        }
+        throw new ParseException("bad double constant: " + w, p.lineno());
     }
 
 

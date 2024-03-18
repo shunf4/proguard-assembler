@@ -119,7 +119,7 @@ implements   AttributeVisitor,
                         p.printIndent();
                         p.printWord(AssemblyConstants.LOCAL_VAR_START);
                         p.printSpace();
-                        p.printNumber(localVariableInfo.u2index);
+                        p.printRawIntOrLong(localVariableInfo.u2index);
                         p.printSpace();
                         p.printType(localVariableInfo.getDescriptor(clazz));
                         p.printSpace();
@@ -141,7 +141,7 @@ implements   AttributeVisitor,
                         p.printIndent();
                         p.printWord(AssemblyConstants.LOCAL_VAR_END);
                         p.printSpace();
-                        p.printNumber(localVariableInfo.u2index);
+                        p.printRawIntOrLong(localVariableInfo.u2index);
                         p.println();
                         p.indent();
                     }
@@ -159,7 +159,7 @@ implements   AttributeVisitor,
                         p.printIndent();
                         p.printWord(AssemblyConstants.LOCAL_VAR_TYPE_START);
                         p.printSpace();
-                        p.printNumber(localVariableTypeInfo.u2index);
+                        p.printRawIntOrLong(localVariableTypeInfo.u2index);
                         p.printSpace();
                         p.printString(localVariableTypeInfo.getSignature(clazz));
                         p.printSpace();
@@ -178,7 +178,7 @@ implements   AttributeVisitor,
                         p.printIndent();
                         p.printWord(AssemblyConstants.LOCAL_VAR_TYPE_END);
                         p.printSpace();
-                        p.printNumber(localVariableTypeInfo.u2index);
+                        p.printRawIntOrLong(localVariableTypeInfo.u2index);
                         p.println();
                         p.indent();
                     }
@@ -227,7 +227,7 @@ implements   AttributeVisitor,
             simpleInstruction.opcode == Instruction.OP_SIPUSH)
         {
             p.printSpace();
-            p.printNumber(simpleInstruction.constant);
+            p.printRawIntOrLong(simpleInstruction.constant);
         }
 
         if (simpleInstruction.opcode == Instruction.OP_NEWARRAY)
@@ -253,13 +253,13 @@ implements   AttributeVisitor,
             variableInstruction.opcode == Instruction.OP_RET)
         {
             p.printSpace();
-            p.printNumber(variableInstruction.variableIndex);
+            p.printRawIntOrLong(variableInstruction.variableIndex);
         }
 
         if (variableInstruction.opcode == Instruction.OP_IINC)
         {
             p.printSpace();
-            p.printNumber(variableInstruction.constant);
+            p.printRawIntOrLong(variableInstruction.constant);
         }
     }
 
@@ -271,7 +271,7 @@ implements   AttributeVisitor,
         if (constantInstruction.opcode == Instruction.OP_MULTIANEWARRAY)
         {
             p.printSpace();
-            p.printNumber(constantInstruction.constant);
+            p.printRawIntOrLong(constantInstruction.constant);
         }
     }
 
@@ -294,7 +294,7 @@ implements   AttributeVisitor,
             p.printIndent();
             p.printWord(AssemblyConstants.CASE);
             p.printSpace();
-            p.printNumber(tableSwitchInstruction.lowCase + index);
+            p.printRawIntOrLong(tableSwitchInstruction.lowCase + index);
             p.print(AssemblyConstants.COLON);
             p.printSpace();
             p.printOffset(offset + tableSwitchInstruction.jumpOffsets[index]);
@@ -324,7 +324,7 @@ implements   AttributeVisitor,
             p.printIndent();
             p.printWord(AssemblyConstants.CASE);
             p.printSpace();
-            p.printNumber(lookUpSwitchInstruction.cases[index]);
+            p.printRawIntOrLong(lookUpSwitchInstruction.cases[index]);
             p.print(AssemblyConstants.COLON);
             p.printSpace();
             p.printOffset(offset + lookUpSwitchInstruction.jumpOffsets[index]);
@@ -373,7 +373,7 @@ implements   AttributeVisitor,
         p.printIndent();
         p.printWord(AssemblyConstants.LINE);
         p.printSpace();
-        p.printNumber(lineNumberInfo.u2lineNumber);
+        p.printRawIntOrLong(lineNumberInfo.u2lineNumber);
         p.println();
     }
 
