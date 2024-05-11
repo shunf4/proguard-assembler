@@ -287,6 +287,14 @@ public class AssemblerCli
                 new PrefixStrippingDataEntryReader(JMOD_CLASS_FILE_PREFIX, reader),
                 reader);
 
+        DataEntryReader prefixStrippingReaderForSpringBoot =
+            new FilteredDataEntryReader(new DataEntryNameFilter(
+                                        new OrMatcher(
+                                        new ExtensionMatcher(".class"),
+                                        new ExtensionMatcher(".jbc"))),
+                new PrefixStrippingDataEntryReader("BOOT-INF/classes/", reader),
+                reader);
+
         // Unpack jmod files.
         reader =
             new FilteredDataEntryReader(new DataEntryNameFilter(new ExtensionMatcher(".jmod")),
@@ -296,7 +304,7 @@ public class AssemblerCli
         // Unpack jar files.
         reader =
             new FilteredDataEntryReader(new DataEntryNameFilter(new ExtensionMatcher(".jar")),
-                new JarReader(reader),
+                new JarReader(false, prefixStrippingReaderForSpringBoot),
                 reader);
 
         return reader;
