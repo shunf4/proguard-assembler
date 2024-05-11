@@ -29,6 +29,10 @@ import proguard.preverify.CodePreverifier;
 import proguard.util.*;
 
 import java.io.*;
+import java.util.concurrent.atomic.AtomicBoolean;
+
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 
 /**
  * Main class for the ProGuard Disassembler and Assembler.
@@ -142,7 +146,7 @@ public class AssemblerCli
     {
         // Any class files go into the library class pool.
         DataEntryReader classReader =
-            new ClassReader(false, false, false, false, null,
+            new ClassReader(false, false, false, false, new WarningLogger(LogManager.getLogger(AssemblerCli.class)),
             new ClassPoolFiller(libraryClassPool));
 
         // Any jbc files go into the program class pool.
@@ -200,6 +204,59 @@ public class AssemblerCli
             new CodePreverifier(false)))));
     }
 
+    private static class RenamingOnceDataEntry implements DataEntry {
+
+        private DataEntry delegated;
+
+        private AtomicBoolean everReplaced = new AtomicBoolean(false);
+
+        RenamingOnceDataEntry(DataEntry delegated) { this.delegated = delegated; }
+
+        @Override
+        public String getName() {
+            boolean everReplacedSafe = everReplaced.getAndSet(true);
+            if (everReplacedSafe) {
+                return delegated.getName();
+            } else {
+                String n = delegated.getName();
+                if (n.startsWith("BOOT-INF/classes/")) {
+                    n = n.substring("BOOT-INF/classes/".length());
+                }
+                return n;
+            }
+        }
+
+        @Override
+        public String getOriginalName() {
+            return delegated.getOriginalName();
+        }
+
+        @Override
+        public long getSize() {
+            return delegated.getSize();
+        }
+
+        @Override
+        public boolean isDirectory() {
+            return delegated.isDirectory();
+        }
+
+        @Override
+        public InputStream getInputStream() throws IOException {
+            return delegated.getInputStream();
+        }
+
+        @Override
+        public void closeInputStream() throws IOException {
+            delegated.closeInputStream();
+        }
+
+        @Override
+        public DataEntry getParent() {
+            return delegated.getParent();
+        }
+        
+    }
 
     /**
      * Reads the specified input, replacing .class files by .jbc files and
@@ -218,14 +275,26 @@ public class AssemblerCli
             new RenamedDataEntryWriter(new ConcatenatingStringFunction(
                                        new SuffixRemovingStringFunction(".class"),
                                        new ConstantStringFunction(".jbc")),
-            new JbcDataEntryWriter(libraryClassPool, writer));
+            new JbcDataEntryWriter(libraryClassPool, writer) {
+                @Override
+                public OutputStream createOutputStream(DataEntry dataEntry) throws IOException
+                {
+                    return super.createOutputStream(new RenamingOnceDataEntry(dataEntry));
+                }
+            });
 
         // Write out jbc files as class files.
         DataEntryWriter jbcAsClassWriter =
             new RenamedDataEntryWriter(new ConcatenatingStringFunction(
                                        new SuffixRemovingStringFunction(".jbc"),
                                        new ConstantStringFunction(".class")),
-            new ClassDataEntryWriter(programClassPool, writer));
+            new ClassDataEntryWriter(programClassPool, writer) {
+                @Override
+                public OutputStream createOutputStream(DataEntry dataEntry) throws IOException
+                {
+                    return super.createOutputStream(new RenamingOnceDataEntry(dataEntry));
+                }
+            });
 
         // Read the input again, writing out disassembled/assembled/preverified
         // files.
@@ -266,6 +335,15 @@ public class AssemblerCli
                                           DataEntryReader jbcReader,
                                           DataEntryReader resourceReader)
     {
+        
+
+
+
+        // REMAINING PROBLEM: REPACK ADDS ADDITIONAL FOLDER INTO JAR, WITH THE SAME NAME AS SOURCE
+
+
+
+
         // Handle class files and resource files.
         DataEntryReader reader =
              new FilteredDataEntryReader(new DataEntryNameFilter(new ExtensionMatcher(".class")),
@@ -304,7 +382,7 @@ public class AssemblerCli
         // Unpack jar files.
         reader =
             new FilteredDataEntryReader(new DataEntryNameFilter(new ExtensionMatcher(".jar")),
-                new JarReader(false, prefixStrippingReaderForSpringBoot),
+                new JarReader(reader),
                 reader);
 
         return reader;
