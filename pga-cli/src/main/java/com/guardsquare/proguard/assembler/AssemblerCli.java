@@ -45,6 +45,7 @@ public class AssemblerCli
     private static final String JMOD_CLASS_FILE_PREFIX = "classes/";
     
     private static String mainClassSaved = null;
+    private static String startClassSaved = null;
 
 
     public static void main(String[] args) throws IOException
@@ -130,7 +131,8 @@ public class AssemblerCli
 
             librarySource.pumpDataEntries(reader(libraryClassReader,
                                                  null,
-                                                 null));
+                                                 null,
+                                                 true));
         }
     }
 
@@ -165,22 +167,42 @@ public class AssemblerCli
                                 br
                                     .lines()
                                     .forEach(line -> {
-                                        String theMainClass = null;
-                                        if (line.startsWith("Main-Class: ")) {
-                                            theMainClass = line.substring("Main-Class: ".length());
-                                        } else if (line.startsWith("Main-Class:")) {
-                                            theMainClass = line.substring("Main-Class:".length());
+                                        {
+                                            String theMainClass = null;
+                                            if (line.startsWith("Main-Class: ")) {
+                                                theMainClass = line.substring("Main-Class: ".length());
+                                            } else if (line.startsWith("Main-Class:")) {
+                                                theMainClass = line.substring("Main-Class:".length());
+                                            }
+
+                                            if (theMainClass != null) {
+                                                System.out.println("Saved Main-Class: " + theMainClass);
+                                                System.out.flush();
+                                                mainClassSaved = theMainClass;
+                                            }
                                         }
-                                        if (theMainClass != null) {
-                                            System.out.println("Saved Main-Class: " + theMainClass);
-                                            System.out.flush();
-                                            mainClassSaved = theMainClass;
+
+                                        {
+                                            String theStartClass = null;
+
+                                            if (line.startsWith("Start-Class: ")) {
+                                                theStartClass = line.substring("Start-Class: ".length());
+                                            } else if (line.startsWith("Start-Class:")) {
+                                                theStartClass = line.substring("Start-Class:".length());
+                                            }
+
+                                            if (theStartClass != null) {
+                                                System.out.println("Saved Start-Class: " + theStartClass);
+                                                System.out.flush();
+                                                startClassSaved = theStartClass;
+                                            }
                                         }
                                     });
                                 br.close();
                             }
                         }
-                    });
+                    },
+                    true);
 
         inputSource.pumpDataEntries(reader);
     }
@@ -204,13 +226,18 @@ public class AssemblerCli
             new CodePreverifier(false)))));
     }
 
-    private static class RenamingOnceDataEntry implements DataEntry {
+    /**
+     * Rename only once to spoof JbcDataEntryWriter & ClassDataEntryWriter,
+     *   guiding them to the correct class fully qualified name,
+     *   but still writing to the original (prefixed) output path.
+     */
+    private static class RenamingOnceSpringBootClassPrefixDataEntry implements DataEntry {
 
         private DataEntry delegated;
 
         private AtomicBoolean everReplaced = new AtomicBoolean(false);
 
-        RenamingOnceDataEntry(DataEntry delegated) { this.delegated = delegated; }
+        RenamingOnceSpringBootClassPrefixDataEntry(DataEntry delegated) { this.delegated = delegated; }
 
         @Override
         public String getName() {
@@ -269,6 +296,8 @@ public class AssemblerCli
     throws IOException
     {
         DataEntryWriter writer = writer(outputFileName);
+        boolean isOutputJar   = outputFileName.endsWith(".jar");
+        boolean isOutputJmod  = outputFileName.endsWith(".jmod");
 
         // Write out class files as jbc files.
         DataEntryWriter classAsJbcWriter =
@@ -279,7 +308,7 @@ public class AssemblerCli
                 @Override
                 public OutputStream createOutputStream(DataEntry dataEntry) throws IOException
                 {
-                    return super.createOutputStream(new RenamingOnceDataEntry(dataEntry));
+                    return super.createOutputStream(new RenamingOnceSpringBootClassPrefixDataEntry(dataEntry));
                 }
             });
 
@@ -292,15 +321,37 @@ public class AssemblerCli
                 @Override
                 public OutputStream createOutputStream(DataEntry dataEntry) throws IOException
                 {
-                    return super.createOutputStream(new RenamingOnceDataEntry(dataEntry));
+                    return super.createOutputStream(new RenamingOnceSpringBootClassPrefixDataEntry(dataEntry));
                 }
             });
 
         // Read the input again, writing out disassembled/assembled/preverified
         // files.
-        inputSource.pumpDataEntries(reader(new IdleRewriter(classAsJbcWriter),
-                                           new IdleRewriter(jbcAsClassWriter),
-                                           new DataEntryCopier(writer)));
+        DataEntryReader reader = reader(new IdleRewriter((isOutputJar || isOutputJmod) ? writer : classAsJbcWriter),
+            new IdleRewriter((isOutputJar || isOutputJmod) ? jbcAsClassWriter : writer),
+            new DataEntryCopier(writer),
+            (isOutputJar || isOutputJmod) ? false : true);
+
+        if (inputSource instanceof DirectorySource) {
+            final DataEntryReader downstreamReader = reader;
+            // Fix for DirectorySource
+            reader = new DataEntryReader() {
+
+                private AtomicBoolean firstAlreadySkipped = new AtomicBoolean(false);
+
+                @Override
+                public void read(DataEntry dataEntry) throws IOException {
+                    if (!firstAlreadySkipped.getAndSet(true)) {
+                        return;
+                    } else {
+                        downstreamReader.read(dataEntry);
+                    }
+                }
+                
+            };
+        }
+
+        inputSource.pumpDataEntries(reader);
 
         writer.close();
     }
@@ -333,14 +384,15 @@ public class AssemblerCli
      */
     private static DataEntryReader reader(DataEntryReader classReader,
                                           DataEntryReader jbcReader,
-                                          DataEntryReader resourceReader)
+                                          DataEntryReader resourceReader,
+                                          boolean isAllowUnpack)
     {
         
 
 
 
-        // REMAINING PROBLEM: REPACK ADDS ADDITIONAL FOLDER INTO JAR, WITH THE SAME NAME AS SOURCE
-
+        // REMAINING PROBLEM: 
+        //   1. REPACK ADDS ADDITIONAL FOLDER INTO JAR, WITH THE SAME NAME AS SOURCE
 
 
 
@@ -365,25 +417,27 @@ public class AssemblerCli
                 new PrefixStrippingDataEntryReader(JMOD_CLASS_FILE_PREFIX, reader),
                 reader);
 
-        DataEntryReader prefixStrippingReaderForSpringBoot =
-            new FilteredDataEntryReader(new DataEntryNameFilter(
-                                        new OrMatcher(
-                                        new ExtensionMatcher(".class"),
-                                        new ExtensionMatcher(".jbc"))),
-                new PrefixStrippingDataEntryReader("BOOT-INF/classes/", reader),
-                reader);
+        // DataEntryReader prefixStrippingReaderForSpringBoot =
+        //     new FilteredDataEntryReader(new DataEntryNameFilter(
+        //                                 new OrMatcher(
+        //                                 new ExtensionMatcher(".class"),
+        //                                 new ExtensionMatcher(".jbc"))),
+        //         new PrefixStrippingDataEntryReader("BOOT-INF/classes/", reader),
+        //         reader);
 
-        // Unpack jmod files.
-        reader =
-            new FilteredDataEntryReader(new DataEntryNameFilter(new ExtensionMatcher(".jmod")),
-                new JarReader(true, prefixStrippingReader),
-                reader);
+        if (isAllowUnpack) {
+            // Unpack jmod files.
+            reader =
+                new FilteredDataEntryReader(new DataEntryNameFilter(new ExtensionMatcher(".jmod")),
+                    new JarReader(true, prefixStrippingReader),
+                    reader);
 
-        // Unpack jar files.
-        reader =
-            new FilteredDataEntryReader(new DataEntryNameFilter(new ExtensionMatcher(".jar")),
-                new JarReader(reader),
-                reader);
+            // Unpack jar files.
+            reader =
+                new FilteredDataEntryReader(new DataEntryNameFilter(new ExtensionMatcher(".jar")),
+                    new JarReader(reader),
+                    reader);
+        }
 
         return reader;
     }
@@ -427,6 +481,11 @@ public class AssemblerCli
                         writer.println("Main-Class: " + mainClassSaved);
                         writer.flush();
                     }
+                    if (startClassSaved != null) {
+                        PrintWriter writer = new PrintWriter(outputStream);
+                        writer.println("Start-Class: " + startClassSaved);
+                        writer.flush();
+                    }
                     return outputStream;
                 }
 
@@ -437,7 +496,13 @@ public class AssemblerCli
             }
             writer =
                 new MyJarWriter(
-                new ZipWriter(writer));
+                new ZipWriter(
+                    new FixedStringMatcher("BOOT-INF/lib/", new NotMatcher(new OrMatcher())),
+                    1,
+                    false,
+                    0,
+                    writer
+                ));
         }
 
         // Pack jmod files.

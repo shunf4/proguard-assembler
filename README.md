@@ -71,6 +71,10 @@ If you've downloaded the source code, you can build it with Gradle:
     # ./gradlew clean assemble
     ./gradlew clean copyBuild
 
+Use this to package distribution archive:
+
+    ./gradlew distTar distZip
+
 Once built, you can [run the assembler and disassembler](index.md) with the
 script `bin/assembler.sh` or `bin/assembler.bat`.
 
