@@ -1,0 +1,17 @@
+{
+    // Use IntelliSense to learn about possible attributes.
+    // Hover to view descriptions of existing attributes.
+    // For more information, visit: https://go.microsoft.com/fwlink/?linkid=830387
+    "version": "0.2.0",
+    "configurations": [
+        {
+            "type": "java",
+            "name": "AssemblerCli",
+            "request": "launch",
+            "mainClass": "com.guardsquare.proguard.assembler.AssemblerCli",
+            "projectName": "pga-cli",
+            // "args": ["C:\\Program Files\\Eclipse Adoptium\\jdk-8.0.362.9-hotspot\\jre\\lib\\rt.jar", "C:/Users/shunf4/tmp/pga-cli-play/u2", "C:/Users/shunf4/tmp/pga-cli-play/p2v.jar"]
+            "args": ["--force-unpack-classes-to-root", "--unpack-jars-in-jar", "C:/Users/shunf4/tmp/pga-cli-play/my.jar", "C:/Users/shunf4/tmp/pga-cli-play/xxxx"]
+        }
+    ]
+}
