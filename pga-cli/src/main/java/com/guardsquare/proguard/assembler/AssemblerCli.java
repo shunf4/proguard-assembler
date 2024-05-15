@@ -29,7 +29,9 @@ import proguard.preverify.CodePreverifier;
 import proguard.util.*;
 
 import java.io.*;
+import java.util.Arrays;
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.function.Function;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -47,26 +49,74 @@ public class AssemblerCli
     private static String mainClassSaved = null;
     private static String startClassSaved = null;
 
+    private static class MutableObject<T> {
+        T v;
+        MutableObject(T v) { this.v = v; }
+        static <S> MutableObject<S> of(S v) { return new MutableObject<S>(v); }
+    }
+
 
     public static void main(String[] args) throws IOException
     {
-        if (args.length < 2 || args.length > 3)
-        {
+        Runnable printUsageAndExit = () -> {
             System.out.println("ProGuard Assembler: assembles and disassembles Java class files.");
-            System.out.println("Usage:");
-            System.out.println("  java proguard.Assembler [<classpath>] <input> <output>");
+            System.out.println("Usage: (Options must come first)");
+            System.out.println("  java proguard.Assembler [--force-unpack-classes-to-root] [--unpack-jars-in-jar] [<classpath>] <input> <output>");
             System.out.println("The input and the output can be .class/.jbc/.jar/.jmod files or directories,");
             System.out.println("where .jbc files contain disassembled Java bytecode.");
             System.out.println("The classpath (with runtime classes and library classes) is only necessary for preverifying assembled code.");
             System.exit(1);
+        };
+
+        if (args.length < 2)
+        {
+            printUsageAndExit.run();
+        }
+        
+        MutableObject<Boolean> forceUnpackClassesToRootW = MutableObject.of(false);
+        MutableObject<Boolean> unpackJarsInJarW = MutableObject.of(false);
+        MutableObject<String[]> remainingArgs = MutableObject.of(args);
+        
+        Runnable shift = () -> {
+            remainingArgs.v = Arrays.copyOfRange(remainingArgs.v, 1, remainingArgs.v.length);
+        };
+
+        Runnable parseOneOpt = () -> {
+            if (remainingArgs.v.length == 0) {
+                throw new IllegalArgumentException();
+            }
+            
+            if ("--force-unpack-classes-to-root".equals(remainingArgs.v[0])) {
+                shift.run();
+                forceUnpackClassesToRootW.v = true;
+            } else if ("--unpack-jars-in-jar".equals(remainingArgs.v[0])) {
+                shift.run();
+                unpackJarsInJarW.v = true;
+            } else {
+                throw new IllegalArgumentException();
+            }
+        };
+
+        while (true) {
+            try {
+                parseOneOpt.run();
+            } catch (IllegalArgumentException e) {
+                break;
+            }
+        }
+
+        if (remainingArgs.v.length < 2) {
+            printUsageAndExit.run();
+        }
+        if (remainingArgs.v.length > 3) {
+            printUsageAndExit.run();
         }
 
         int index = 0;
-
-        String[] libraryPath    = args.length >= 3 ?
-                                  args[index++].split(System.getProperty("path.separator")) : null;
-        String   inputFileName  = args[index++];
-        String   outputFileName = args[index++];
+        String[] libraryPath    = remainingArgs.v.length >= 3 ?
+                                  remainingArgs.v[index++].split(System.getProperty("path.separator")) : null;
+        String   inputFileName  = remainingArgs.v[index++];
+        String   outputFileName = remainingArgs.v[index++];
 
         ClassPool libraryClassPool = new ClassPool();
         ClassPool programClassPool = new ClassPool();
@@ -85,7 +135,9 @@ public class AssemblerCli
 
         readInput(inputSource,
                   libraryClassPool,
-                  programClassPool);
+                  programClassPool,
+                  forceUnpackClassesToRootW.v,
+                  unpackJarsInJarW.v);
 
         // Preverify the program class pool.
         if (libraryPath != null && programClassPool.size() > 0)
@@ -106,7 +158,9 @@ public class AssemblerCli
         writeOutput(inputSource,
                     outputFileName,
                     libraryClassPool,
-                    programClassPool);
+                    programClassPool,
+                    forceUnpackClassesToRootW.v,
+                    unpackJarsInJarW.v);
     }
 
 
@@ -132,7 +186,9 @@ public class AssemblerCli
             librarySource.pumpDataEntries(reader(libraryClassReader,
                                                  null,
                                                  null,
-                                                 true));
+                                                 true,
+                                                 false,
+                                                 false));
         }
     }
 
@@ -143,7 +199,9 @@ public class AssemblerCli
      */
     private static void readInput(DataEntrySource inputSource,
                                   ClassPool       libraryClassPool,
-                                  ClassPool       programClassPool)
+                                  ClassPool       programClassPool,
+                                  boolean forceUnpackClassesToRoot,
+                                  boolean unpackJarsInJar)
     throws IOException
     {
         // Any class files go into the library class pool.
@@ -198,11 +256,16 @@ public class AssemblerCli
                                             }
                                         }
                                     });
-                                br.close();
+                                // Another fix for incorrect inputStream acquirement in ZipDataEntry
+                                if (!(dataEntry instanceof ZipDataEntry)) {
+                                    br.close();
+                                }
                             }
                         }
                     },
-                    true);
+                    true,
+                    forceUnpackClassesToRoot,
+                    unpackJarsInJar);
 
         inputSource.pumpDataEntries(reader);
     }
@@ -292,7 +355,9 @@ public class AssemblerCli
     private static void writeOutput(DataEntrySource inputSource,
                                     String          outputFileName,
                                     ClassPool       libraryClassPool,
-                                    ClassPool       programClassPool)
+                                    ClassPool       programClassPool,
+                                    boolean forceUnpackClassesToRoot,
+                                    boolean unpackJarsInJar)
     throws IOException
     {
         DataEntryWriter writer = writer(outputFileName);
@@ -304,7 +369,7 @@ public class AssemblerCli
             new RenamedDataEntryWriter(new ConcatenatingStringFunction(
                                        new SuffixRemovingStringFunction(".class"),
                                        new ConstantStringFunction(".jbc")),
-            new JbcDataEntryWriter(libraryClassPool, writer) {
+            forceUnpackClassesToRoot ? new JbcDataEntryWriter(libraryClassPool, writer) : new JbcDataEntryWriter(libraryClassPool, writer) {
                 @Override
                 public OutputStream createOutputStream(DataEntry dataEntry) throws IOException
                 {
@@ -317,7 +382,7 @@ public class AssemblerCli
             new RenamedDataEntryWriter(new ConcatenatingStringFunction(
                                        new SuffixRemovingStringFunction(".jbc"),
                                        new ConstantStringFunction(".class")),
-            new ClassDataEntryWriter(programClassPool, writer) {
+            forceUnpackClassesToRoot ? new ClassDataEntryWriter(programClassPool, writer) : new ClassDataEntryWriter(programClassPool, writer) {
                 @Override
                 public OutputStream createOutputStream(DataEntry dataEntry) throws IOException
                 {
@@ -330,7 +395,9 @@ public class AssemblerCli
         DataEntryReader reader = reader(new IdleRewriter((isOutputJar || isOutputJmod) ? writer : classAsJbcWriter),
             new IdleRewriter((isOutputJar || isOutputJmod) ? jbcAsClassWriter : writer),
             new DataEntryCopier(writer),
-            (isOutputJar || isOutputJmod) ? false : true);
+            (isOutputJar || isOutputJmod) ? false : true,
+            forceUnpackClassesToRoot,
+            unpackJarsInJar);
 
         if (inputSource instanceof DirectorySource) {
             final DataEntryReader downstreamReader = reader;
@@ -385,17 +452,10 @@ public class AssemblerCli
     private static DataEntryReader reader(DataEntryReader classReader,
                                           DataEntryReader jbcReader,
                                           DataEntryReader resourceReader,
-                                          boolean isAllowUnpack)
+                                          boolean isAllowUnpack,
+                                          boolean forceUnpackClassesToRoot,
+                                          boolean unpackJarsInJar)
     {
-        
-
-
-
-        // REMAINING PROBLEM: 
-        //   1. REPACK ADDS ADDITIONAL FOLDER INTO JAR, WITH THE SAME NAME AS SOURCE
-
-
-
         // Handle class files and resource files.
         DataEntryReader reader =
              new FilteredDataEntryReader(new DataEntryNameFilter(new ExtensionMatcher(".class")),
@@ -417,13 +477,13 @@ public class AssemblerCli
                 new PrefixStrippingDataEntryReader(JMOD_CLASS_FILE_PREFIX, reader),
                 reader);
 
-        // DataEntryReader prefixStrippingReaderForSpringBoot =
-        //     new FilteredDataEntryReader(new DataEntryNameFilter(
-        //                                 new OrMatcher(
-        //                                 new ExtensionMatcher(".class"),
-        //                                 new ExtensionMatcher(".jbc"))),
-        //         new PrefixStrippingDataEntryReader("BOOT-INF/classes/", reader),
-        //         reader);
+        Function<DataEntryReader, DataEntryReader> prefixStrippingReaderForSpringBoot = downstreamReader ->
+            new FilteredDataEntryReader(new DataEntryNameFilter(
+                                        new OrMatcher(
+                                        new ExtensionMatcher(".class"),
+                                        new ExtensionMatcher(".jbc"))),
+                new PrefixStrippingDataEntryReader("BOOT-INF/classes/", downstreamReader),
+                downstreamReader);
 
         if (isAllowUnpack) {
             // Unpack jmod files.
@@ -432,10 +492,17 @@ public class AssemblerCli
                     new JarReader(true, prefixStrippingReader),
                     reader);
 
+            if (unpackJarsInJar) {
+                reader =
+                    new FilteredDataEntryReader(new DataEntryNameFilter(new ExtensionMatcher(".jar")),
+                        new JarReader(false, forceUnpackClassesToRoot ? prefixStrippingReaderForSpringBoot.apply(reader) : reader),
+                        reader);
+            }
+
             // Unpack jar files.
             reader =
                 new FilteredDataEntryReader(new DataEntryNameFilter(new ExtensionMatcher(".jar")),
-                    new JarReader(reader),
+                    new JarReader(false, forceUnpackClassesToRoot ? prefixStrippingReaderForSpringBoot.apply(reader) : reader),
                     reader);
         }
 
